@@ -35,7 +35,7 @@ def _create_gist(repos_content, anonomous=True):
     if not response.ok:
         raise ConnectionError('failed to create gist')
 
-    gist_details = json.loads(response.content)
+    gist_details = json.loads(response.content.decode())
     return gist_details['files'][gist_file_name]['raw_url']
 
 
@@ -93,7 +93,7 @@ def _fetch_pr_info(pr_url):
     request_url = api_url + '/repos/{org}/{repo}/pulls/{pr_id}'.format(
             org=org, repo=repo, pr_id=pr_id)
     pr_info = requests.get(request_url)
-    jPr = json.loads(pr_info.content)
+    jPr = json.loads(pr_info.content.decode())
 
     repos_index = org + '/' + repo
     url = jPr['head']['repo']['html_url'] + '.git'
