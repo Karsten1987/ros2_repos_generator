@@ -11,15 +11,28 @@ https://developer.github.com/v3/gists/#create-a-gist
 """
 
 import argparse
+import getpass
 import json
+import os
 import requests
+from requests.auth import HTTPBasicAuth
 
 api_url = 'https://api.github.com'
 default_ros2_repos = 'https://raw.githubusercontent.com/' \
         'ros2/ros2/master/ros2.repos'
 
 
-def _create_gist(repos_content, anonomous=True):
+def _get_github_token():
+    return os.environ.get('GITHUB_TOKEN')
+
+
+def _get_username_and_password():
+    username = input('github username: ')
+    password = getpass.getpass('password: ')
+    return username, password
+
+
+def _create_gist(repos_content, token_param, auth):
     gist_file_name = 'external_contribution_repos.txt'
     jGist = json.dumps({
       'description': 'external contribution repos file',
@@ -29,7 +42,8 @@ def _create_gist(repos_content, anonomous=True):
           'content': repos_content}}})
 
     response = requests.post(
-            api_url + '/gists',
+            api_url + '/gists' + token_param,
+            auth=auth,
             verify=True,
             data=jGist)
     response.raise_for_status()
@@ -102,13 +116,22 @@ def _fetch_pr_info(pr_url):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('pr_url', help='modify repos file with this PR url')
     args = parser.parse_args()
+
+    auth = None
+    token_param = ''
+    github_token = _get_github_token()
+    if github_token is None:
+        username, password = _get_username_and_password()
+        auth = HTTPBasicAuth(username, password)
+    else:
+        token_param = '?access_token=' + github_token
 
     pkg, url, branch = _fetch_pr_info(args.pr_url)
     ros2_repos = _fetch_master_repos_file()
     modified_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
-    gist_url = _create_gist(modified_repos)
+    gist_url = _create_gist(modified_repos, token_param, auth)
 
-    print('new gist: url\n{gist_url}'.format(gist_url=gist_url))
+    print('new gist url:\n{gist_url}'.format(gist_url=gist_url))
