@@ -22,10 +22,6 @@ default_ros2_repos = 'https://raw.githubusercontent.com/' \
         'ros2/ros2/master/ros2.repos'
 
 
-def _get_github_token():
-    return os.environ.get('GITHUB_TOKEN')
-
-
 def _get_username_and_password():
     username = input('github username: ')
     password = getpass.getpass('password: ')
@@ -74,9 +70,7 @@ def _modify_master_repos(repos, pkg, url, branch):
 
 def _fetch_master_repos_file(repos_file_url=default_ros2_repos):
     response = requests.get(repos_file_url)
-    if not response.ok:
-        raise ConnectionError('failed to fetch ros2 repos on {url}'.format(
-            url=repos_file_url))
+    response.raise_for_status()
     return response.content.decode()
 
 
@@ -122,7 +116,7 @@ if __name__ == '__main__':
 
     auth = None
     token_param = ''
-    github_token = _get_github_token()
+    github_token = os.environ.get('GITHUB_TOKEN')
     if github_token is None:
         username, password = _get_username_and_password()
         auth = HTTPBasicAuth(username, password)
@@ -134,4 +128,5 @@ if __name__ == '__main__':
     modified_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
     gist_url = _create_gist(modified_repos, token_param, auth)
 
-    print('new gist url:\n{gist_url}'.format(gist_url=gist_url))
+    print('new gist url:')
+    print(gist_url)
