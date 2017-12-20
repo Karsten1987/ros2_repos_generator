@@ -32,8 +32,7 @@ def _create_gist(repos_content, anonomous=True):
             api_url + '/gists',
             verify=True,
             data=jGist)
-    if not response.ok:
-        raise ConnectionError('failed to create gist')
+    response.raise_for_status()
 
     gist_details = json.loads(response.content.decode())
     return gist_details['files'][gist_file_name]['raw_url']
