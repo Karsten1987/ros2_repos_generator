@@ -111,7 +111,10 @@ def _fetch_pr_info(pr_url):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('pr_url', help='modify repos file with this PR url')
+    parser.add_argument(
+            'pr_url',
+            nargs='+',
+            help='modify repos file with these PR url')
     args = parser.parse_args()
 
     auth = None
@@ -123,10 +126,11 @@ if __name__ == '__main__':
     else:
         token_param = '?access_token=' + github_token
 
-    pkg, url, branch = _fetch_pr_info(args.pr_url)
     ros2_repos = _fetch_master_repos_file()
-    modified_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
-    gist_url = _create_gist(modified_repos, token_param, auth)
+    for pr in args.pr_url:
+        pkg, url, branch = _fetch_pr_info(pr)
+        ros2_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
+    gist_url = _create_gist(ros2_repos, token_param, auth)
 
     print('new gist url:')
     print(gist_url)
