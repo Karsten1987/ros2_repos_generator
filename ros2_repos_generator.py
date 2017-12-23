@@ -55,11 +55,15 @@ def _modify_master_repos(repos, pkg, url, branch):
     for idx, val in enumerate(lines):
         if pkg + ':' == val.lstrip():
             pkg_found = True
-            print('found pkg to replace', val)
-            lines[idx+2] = '{indent} url: {url}'.format(
+            lines[idx + 2] = '{indent} url: {url}'.format(
                     indent=3 * ' ', url=url)
-            lines[idx+3] = '{indent} version: {branch}'.format(
+            lines[idx + 3] = '{indent} version: {branch}'.format(
                     indent=3 * ' ', branch=branch)
+            print('new entry for package:', val.lstrip())
+            print(lines[idx])
+            print(lines[idx + 1])
+            print(lines[idx + 2])
+            print(lines[idx + 3])
             break
 
     if not pkg_found:
@@ -92,10 +96,7 @@ def _fetch_pr_info(pr_url):
                 'could not find any pull request id in url {url}'.format(
                     url=pr_url))
 
-    print('analyzing pull request url')
-    print('found github organization: ', org)
-    print('found github repo: ', repo)
-    print('found pull request number:', pr_id)
+    print('analyzing pull request url', pr_url)
 
     request_url = api_url + '/repos/{org}/{repo}/pulls/{pr_id}'.format(
             org=org, repo=repo, pr_id=pr_id)
