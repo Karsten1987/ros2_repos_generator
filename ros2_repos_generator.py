@@ -55,20 +55,31 @@ def _modify_master_repos(repos, pkg, url, branch):
     for idx, val in enumerate(lines):
         if pkg + ':' == val.lstrip():
             pkg_found = True
-            lines[idx + 2] = '{indent} url: {url}'.format(
-                    indent=3 * ' ', url=url)
-            lines[idx + 3] = '{indent} version: {branch}'.format(
-                    indent=3 * ' ', branch=branch)
+            lines[idx + 2] = '{indent}url: {url}'.format(
+                    indent=4 * ' ', url=url)
+            lines[idx + 3] = '{indent}version: {branch}'.format(
+                    indent=4 * ' ', branch=branch)
             print('new entry for package:', val.lstrip())
-            print(lines[idx])
+            [print(lines[idx + i] for i in range(4))]
             print(lines[idx + 1])
             print(lines[idx + 2])
             print(lines[idx + 3])
             break
 
     if not pkg_found:
-        raise ValueError('{pkg} does not exist in repos file'.format(
-            pkg=pkg))
+        new_entry = []
+        new_entry.append('{indent}{pkg}:'.format(
+                indent=2 * ' ', pkg=pkg))
+        new_entry.append('{indent}type: git'.format(
+                indent=4 * ' '))
+        new_entry.append('{indent}url: {url}'.format(
+                indent=4 * ' ', url=url))
+        new_entry.append('{indent}version: {branch}'.format(
+                indent=4 * ' ', branch=branch))
+        print('adding new package entry:')
+        [print(new_entry[x]) for x in range(len(new_entry))]
+        del lines[-1]  # remove last '\n'
+        lines += new_entry
     return '\n'.join(lines)
 
 
@@ -116,6 +127,10 @@ if __name__ == '__main__':
             'pr_url',
             nargs='+',
             help='modify repos file with these PR url')
+    parser.add_argument(
+            '-master_repos_url',
+            nargs='?',
+            help='original repos file where to merge PRs into')
     args = parser.parse_args()
 
     auth = None
@@ -127,7 +142,11 @@ if __name__ == '__main__':
     else:
         token_param = '?access_token=' + github_token
 
-    ros2_repos = _fetch_master_repos_file()
+    master_repo_file = default_ros2_repos
+    if args.master_repos_url:
+        master_repo_file = args.master_repos_url
+    ros2_repos = _fetch_master_repos_file(master_repo_file)
+
     for pr in args.pr_url:
         pkg, url, branch = _fetch_pr_info(pr)
         ros2_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
