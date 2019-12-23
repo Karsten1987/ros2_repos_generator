@@ -14,6 +14,7 @@ import argparse
 import getpass
 import json
 import os
+import sys
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -62,8 +63,8 @@ def _modify_master_repos(repos, pkg, url, branch):
                 indent=4 * ' ', url=url)
             lines[idx + 3] = '{indent}version: {branch}'.format(
                 indent=4 * ' ', branch=branch)
-            print('new entry for package:', val.lstrip())
-            [print(lines[idx + i] for i in range(4))]
+            print('modifying existing entry for package:', val.lstrip())
+            print(lines[idx + 0])
             print(lines[idx + 1])
             print(lines[idx + 2])
             print(lines[idx + 3])
@@ -77,7 +78,7 @@ def _modify_master_repos(repos, pkg, url, branch):
             indent=4 * ' '))
         new_entry.append('{indent}url: {url}'.format(
             indent=4 * ' ', url=url))
-        new_entry.append('{indent}version: {branch}'.format(
+        new_entry.append('{indent}version: {branch}\n'.format(
             indent=4 * ' ', branch=branch))
         print('adding new package entry:')
         [print(new_entry[x]) for x in range(len(new_entry))]
@@ -91,6 +92,8 @@ def _fetch_master_repos_file(repos_file_url=default_ros2_repos):
     response.raise_for_status()
     return response.content.decode()
 
+def _create_empty_repos_list():
+    return 'repositories:\n'
 
 def _fetch_pr_info(pr_url):
     url_items = pr_url.split('/')
@@ -131,14 +134,27 @@ if __name__ == '__main__':
         nargs='+',
         help='modify repos file with these PR url')
     parser.add_argument(
+        '-f', '--gist-file-name',
+        type=str, default='external_contribution.txt',
+        help='file name of the gist to be created')
+    parser.add_argument(
         '-m', '--master_repos_url',
         nargs='?',
         help='original repos file where to merge PRs into')
     parser.add_argument(
-        '-f', '--gist-file-name',
-        type=str, default='external_contribution.txt',
-        help='file name of the gist to be created')
+        '-n', '--new-repos-file',
+        action='store_true',
+        help='create a new and empty repos file without fetching a master url')
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='more verbose console printouts')
     args = parser.parse_args()
+
+    if args.new_repos_file and args.master_repos_url:
+        print('Invalid input combination. Unable to create a new repos file together'
+                ' with custom master repos url')
+        sys.exit(1)
 
     auth = None
     token_param = ''
@@ -149,14 +165,25 @@ if __name__ == '__main__':
     else:
         token_param = '?access_token=' + github_token
 
-    master_repo_file = default_ros2_repos
-    if args.master_repos_url:
-        master_repo_file = args.master_repos_url
-    ros2_repos = _fetch_master_repos_file(master_repo_file)
+    ros2_repos = ''
+    if args.new_repos_file:
+        ros2_repos = _create_empty_repos_list()
+    else:
+        master_repo_file = default_ros2_repos
+        if args.master_repos_url:
+            master_repo_file = args.master_repos_url
+        ros2_repos = _fetch_master_repos_file(master_repo_file)
+    if args.verbose:
+        print('original ros2 repos')
+        print(ros2_repos)
 
     for pr in args.pr_url:
         pkg, url, branch = _fetch_pr_info(pr)
         ros2_repos = _modify_master_repos(ros2_repos, pkg, url, branch)
+        if args.verbose:
+            print('new modified ros2 repos')
+            print(ros2_repos)
+
     gist_url = _create_gist(ros2_repos, token_param, auth, args.gist_file_name)
 
     print('new gist url:')
