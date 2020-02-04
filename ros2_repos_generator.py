@@ -30,7 +30,7 @@ def _get_username_and_password():
     return username, password
 
 
-def _create_gist(repos_content, token_param, auth, file_name):
+def _create_gist(repos_content, headers, auth, file_name):
     gist_file_name = file_name
     jGist = json.dumps({
         'description': 'external contribution repos file',
@@ -42,7 +42,8 @@ def _create_gist(repos_content, token_param, auth, file_name):
         }})
 
     response = requests.post(
-        api_url + '/gists' + token_param,
+        api_url + '/gists',
+        headers=headers,
         auth=auth,
         verify=True,
         data=jGist)
@@ -157,13 +158,13 @@ if __name__ == '__main__':
         sys.exit(1)
 
     auth = None
-    token_param = ''
+    headers = {}
     github_token = os.environ.get('GITHUB_TOKEN')
     if github_token is None:
         username, password = _get_username_and_password()
         auth = HTTPBasicAuth(username, password)
     else:
-        token_param = '?access_token=' + github_token
+        headers['Authorization'] = 'Bearer ' + github_token
 
     ros2_repos = ''
     if args.new_repos_file:
@@ -184,7 +185,7 @@ if __name__ == '__main__':
             print('new modified ros2 repos')
             print(ros2_repos)
 
-    gist_url = _create_gist(ros2_repos, token_param, auth, args.gist_file_name)
+    gist_url = _create_gist(ros2_repos, headers, auth, args.gist_file_name)
 
     print('new gist url:')
     print(gist_url)
