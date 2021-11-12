@@ -139,23 +139,25 @@ if __name__ == '__main__':
         type=str, default='external_contribution.txt',
         help='file name of the gist to be created')
     parser.add_argument(
-        '-m', '--master_repos_url',
-        nargs='?',
-        help='original repos file where to merge PRs into')
-    parser.add_argument(
-        '-n', '--new-repos-file',
-        action='store_true',
-        help='create a new and empty repos file without fetching a master url')
-    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='more verbose console printouts')
-    args = parser.parse_args()
 
-    if args.new_repos_file and args.master_repos_url:
-        print('Invalid input combination. Unable to create a new repos file together'
-                ' with custom master repos url')
-        sys.exit(1)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        '-n', '--new-repos-file',
+        action='store_true',
+        help='create a new and empty repos file without fetching a master url')
+    group.add_argument(
+        '-m', '--master_repos_url',
+        nargs='?',
+        help='original repos file where to merge PRs into')
+    group.add_argument(
+        '--rosdistro',
+        nargs='?',
+        help='merge with ros2/ros2 repos file for a particular distro')
+
+    args = parser.parse_args()
 
     auth = None
     headers = {}
@@ -169,11 +171,15 @@ if __name__ == '__main__':
     ros2_repos = ''
     if args.new_repos_file:
         ros2_repos = _create_empty_repos_list()
+    elif args.master_repos_url:
+        ros2_repos = _fetch_master_repos_file(args.master_repos_url)
+    elif args.rosdistro:
+        ros2_repos_url = 'https://raw.githubusercontent.com/' \
+            f'ros2/ros2/{args.rosdistro}/ros2.repos'
+        ros2_repos = _fetch_master_repos_file(ros2_repos_url)
     else:
-        master_repo_file = default_ros2_repos
-        if args.master_repos_url:
-            master_repo_file = args.master_repos_url
-        ros2_repos = _fetch_master_repos_file(master_repo_file)
+        ros2_repos = _fetch_master_repos_file(default_ros2_repos)
+
     if args.verbose:
         print('original ros2 repos')
         print(ros2_repos)
